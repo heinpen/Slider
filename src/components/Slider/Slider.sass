@@ -1,0 +1,43 @@
+.slider 
+  width: 100%
+  height: 100%
+  overflow: hidden
+  position: relative
+  &__wrapper
+    display: flex
+    width: 100%
+    height: 100%
+    &.vertical
+      flex-direction: column
+  &__slide
+    flex-shrink: 0
+    width: 100%
+    height: 100%
+    font-size: 50px
+    text-align: center
+    padding-top: 400px
+    box-sizing: border-box
+  &__pagination
+    position: absolute
+    display: flex
+    gap: 10px
+    &.horizontal
+      bottom: 10px
+      left: 50%
+      transform: translateX(-50%)
+    &.vertical
+      flex-direction: column
+      left: 10px
+      bottom: 50%
+      transform: translateY(50%)
+  &__bullet
+    border-radius: 50%
+    background-color: #ccc
+    padding: 0
+    width: 10px
+    height: 10px
+    border: none
+    cursor: pointer
+    box-sizing: border-box
+    &.active-bullet
+      background-color: black
