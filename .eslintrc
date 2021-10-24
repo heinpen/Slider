@@ -1,0 +1,58 @@
+{
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 8,
+    "sourceType": "module"
+  },
+  "plugins": ["@typescript-eslint", "react-hooks"],
+  "extends": [
+    "airbnb",
+    "react-app",
+    "plugin:react-hooks/recommended",
+    "plugin:react/recommended",
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "env": {
+    "browser": true,
+    "node": true
+  },
+  "rules": {
+    "react/jsx-uses-react": "off",
+    "react/react-in-jsx-scope": "off",
+    "react/jsx-one-expression-per-line": "off",
+    "react/prop-types": "off",
+    "no-use-before-define": ["error", { "functions": false }],
+    "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
+    "no-unused-expressions": ["error", { "allowTernary": true }],
+    "no-undef": 0,
+    "no-var": 0,
+    "block-scoped-var": 0,
+    "no-console": "off",
+    "wrap-iife": ["error", "any"],
+    "strict": ["error", "global"],
+    "eol-last": 0,
+    "one-var": ["error", "never"],
+    "arrow-parens": ["error", "always"],
+    "linebreak-style": 0,
+    "import/extensions": "off",
+    "vars-on-top": 0,
+    "lines-between-class-members": ["error", "always"],
+    "no-param-reassign": ["error", { "props": false }],
+    "max-len": ["error", { "ignoreComments": true, "code": 120 }],
+    "react/jsx-filename-extension": [
+      1,
+      {
+        "extensions": [".tsx", ".jsx"]
+      }
+    ]
+  },
+
+  "settings": {
+    "import/resolver": {
+      "node": {
+        "extensions": [".js", ".jsx", ".ts", ".tsx"]
+      }
+    }
+  }
+}
