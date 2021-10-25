@@ -1,38 +1,91 @@
 import './Slider.sass';
 
-interface Config {
+interface UserConfig {
   direction?: string,
   pagination?: boolean
   counter?: boolean
+  arrows?: boolean
 }
 
-function Slider(sliderClassName: string, config: Config): void {
+function Slider(sliderClassName: string, userConfig: UserConfig): void {
   const slider = document.querySelector<HTMLElement>(sliderClassName);
   const sliderWrapper = slider.querySelector<HTMLElement>('.slider__wrapper');
   const slides = slider.querySelectorAll('.slider__slide');
 
-  const direction = config.direction ?? 'horizontal';
-  if (direction === 'vertical') {
-    sliderWrapper.classList.add('vertical');
-    var slideHeight: number = setSizeOfSlide('height');
-  } else {
-    var slideWidth: number = setSizeOfSlide();
-  }
-  if (config.pagination) {
-    var bullets = createBullets();
-  }
-  if (config.counter) {
-    createCounter();
+  const config = (function init() {
+    interface MainConfig {
+      wasPressed: boolean,
+      slidePosition: number,
+      activeSlide: number,
+      startPointOfDragging: number,
+      timeOfStartDragging: number,
+      draggingStopped: number,
+      direction?: string,
+      slideHeight?: number,
+      slideWidth?: number,
+      bullets?: NodeListOf<Element>
+      counter?: HTMLSpanElement
+    }
+
+    const mainConfig: MainConfig = {
+      wasPressed: false,
+      slidePosition: 0,
+      activeSlide: 0,
+      startPointOfDragging: 0,
+      timeOfStartDragging: 0,
+      draggingStopped: 0,
+    };
+
+    // Configure slider according to config, provided by user.
+
+    // direction
+    mainConfig.direction = userConfig.direction ?? 'horizontal';
+    if (mainConfig.direction === 'vertical') {
+      sliderWrapper.classList.add('slider__wrapper_vertical');
+      slider.classList.add('slider_vertical');
+      mainConfig.slideHeight = slider.offsetHeight;
+    } else {
+      mainConfig.slideWidth = slider.offsetWidth;
+    }
+
+    // arrows
+    if (userConfig.arrows) {
+      createArrows();
+    }
+
+    // pagination
+    if (userConfig.pagination) {
+      mainConfig.bullets = createBullets(mainConfig.direction);
+    }
+
+    // counter
+    if (userConfig.counter) {
+      mainConfig.counter = createCounter();
+    }
+
+    return mainConfig;
+  })();
+
+  (function init() {
+    if (config.counter) setCurrentSlideNumber();
+    setActiveStatus(config.activeSlide);
+    initEventListeners();
+    addTransparentHighlight();
+  })();
+
+  function createArrows() {
+    const arrows = {
+      right: document.createElement('button'),
+      left: document.createElement('button'),
+    };
+    arrows.right.classList.add('slider__arrow', 'slider__arrow_right');
+    arrows.left.classList.add('slider__arrow', 'slider__arrow_left');
+
+    // Append to slider.
+    slider.append(arrows.right, arrows.left);
   }
 
-  let wasPressed = false;
-  let slidePosition = 0;
-  let indexOfActiveSlide = 0;
-  let startPointOfDragging: number;
-  let timeOfStartDragging: number;
-  let draggingStopped: number;
-
-  function createBullets() {
+  function createBullets(direction: string) {
     const sliderPagination = document.createElement('div');
 
     sliderPagination.classList.add('slider__pagination');
@@ -50,96 +103,105 @@ function Slider(sliderClassName: string, config: Config): void {
 
     sliderPagination.addEventListener('click', triggerBullets);
 
-    function triggerBullets(e: MouseEvent) {
-      const target = e.target as HTMLTextAreaElement;
-      if (target.classList.contains('slider__bullet')) {
-        const numberBulletIndex = Number(target.dataset.bulletIndex);
-        bulletClickTrigger(numberBulletIndex);
-      }
-    }
-    function bulletClickTrigger(indexOfNewActiveSlide: number) {
-      changeSliderPosition(indexOfNewActiveSlide);
-      setNewActiveSlideAndBullet(indexOfNewActiveSlide);
-      // setCurrentSlideNumber();
-    }
-
     return document.querySelectorAll('.slider__bullet');
   }
-
-  (function init() {
-    addActiveSlideAndBullet(indexOfActiveSlide);
-    initEventListeners();
-    addTransparentHighlight();
-  })();
 
   function addTransparentHighlight() {
     slider.classList.add('highlight-transparent');
   }
 
+  function triggerBullets(e: MouseEvent) {
+    const target = e.target as HTMLTextAreaElement;
+    if (target.classList.contains('slider__bullet')) {
+      const newIndex = Number(target.dataset.bulletIndex);
+      // If click was on active bullet - do nothing.
+      if (newIndex === config.activeSlide) return;
+      changeSliderPosition(newIndex);
+      setActiveStatus(newIndex);
+      applyChangesAfterTransition();
+    }
+  }
+
   function createCounter() {
-    const counter = document.createElement('span');
-    const numberOfSlide = indexOfActiveSlide + 1;
+    const counterElement = document.createElement('span');
+    counterElement.classList.add('slider__counter');
+    slider.appendChild(counterElement);
+    return counterElement;
+  }
+
+  function setCurrentSlideNumber() {
+    const { activeSlide, counter } = config;
+    const numberOfSlide = activeSlide + 1;
+
     if (numberOfSlide >= 10) {
       counter.innerText = `${numberOfSlide}`;
     } else {
       counter.innerText = `0${numberOfSlide}`;
     }
-    slider.appendChild(counter);
   }
 
   function setSizeOfSlide(size?: string) {
     if (size === 'height') {
-      slideHeight = slider.offsetHeight;
-      return slideHeight;
+      config.slideHeight = slider.offsetHeight;
     }
-    slideWidth = slider.offsetWidth;
-    return slideWidth;
+    config.slideWidth = slider.offsetWidth;
   }
 
-  function changeSliderPosition(indexOfNewActiveSlide: number) {
-    setSliderPosition(indexOfNewActiveSlide);
+  function changeSliderPosition(newIndex: number) {
+    setSliderPosition(newIndex);
     // Add transition duration during changing slides.
     startSliding();
   }
 
+  function addVisibility() {
+    slides.forEach((slide) => slide.classList.add('visible'));
+  }
+
+  function removeVisibility() {
+    slides.forEach((slide) => slide.classList.remove('visible'));
+  }
+
   function startSliding() {
+    addVisibility();
     sliderWrapper.style.transitionDuration = '300ms';
     addSlidingStatus();
   }
 
   function endSliding() {
+    removeVisibility();
     sliderWrapper.style.transitionDuration = '0ms';
     removeSlidingStatus();
   }
 
   function setSliderPosition(indexOfSlide: number, draggedDistance = 0, slowingCoeff = 1) {
+    const {
+      direction, slideWidth, slideHeight,
+    } = config;
     if (direction === 'horizontal') {
-      slidePosition = slideWidth * indexOfSlide + draggedDistance / slowingCoeff;
-      sliderWrapper.style.transform = `translate3d(${-slidePosition}px, 0, 0)`;
+      sliderWrapper.style.transform = `translate3d(${-calculateSliderPosition(slideWidth)}px, 0, 0)`;
     } else {
-      slidePosition = slideHeight * indexOfSlide + draggedDistance / slowingCoeff;
-      sliderWrapper.style.transform = `translate3d(0, ${-slidePosition}px, 0)`;
+      sliderWrapper.style.transform = `translate3d(0, ${-calculateSliderPosition(slideHeight)}px, 0)`;
+    }
+
+    function calculateSliderPosition(size: number) {
+      config.slidePosition = size * indexOfSlide + draggedDistance / slowingCoeff;
+      return config.slidePosition;
     }
   }
 
-  function removePrevActiveSlideAndBullet(i: number) {
-    slides[i].classList.remove('active-slide');
-    if (config.pagination) bullets[i].classList.remove('active-bullet');
-  }
+  function setActiveStatus(newIndex: number, prevIndex = config.activeSlide) {
+    // slide
+    slides[prevIndex].classList.remove('active-slide');
+    slides[newIndex].classList.add('active-slide');
 
-  function addActiveSlideAndBullet(i: number) {
-    slides[i].classList.add('active-slide');
-    if (config.pagination) bullets[i].classList.add('active-bullet');
-  }
+    // bullet
+    if (config.bullets) {
+      config.bullets[prevIndex].classList.remove('active-bullet');
+      config.bullets[newIndex].classList.add('active-bullet');
+    }
 
-  function setNewActiveSlideAndBullet(newIndex: number, prevIndex = indexOfActiveSlide) {
-    removePrevActiveSlideAndBullet(prevIndex);
-    addActiveSlideAndBullet(newIndex);
-    setNewIndexOfActiveSlide(newIndex);
-  }
-
-  function setNewIndexOfActiveSlide(newIndex: number) {
-    indexOfActiveSlide = newIndex;
+    // Set new active index.
+    config.activeSlide = newIndex;
   }
 
   function isSliding() {
@@ -150,31 +212,35 @@ function Slider(sliderClassName: string, config: Config): void {
     const target = e.target as HTMLTextAreaElement;
     // If click was on pagination bar or right click was used
     // then slider-dragging is not getting triggered.
-    const elementsClickedId = [target.id, target.parentElement.id];
-    if (elementsClickedId.includes('sliderPagination') || e.buttons === 2 || isSliding()) return;
-
-    if (direction === 'horizontal') {
-      startPointOfDragging = e.pageX;
-    } else {
-      startPointOfDragging = e.pageY;
+    if (target.classList.contains('slider__pagination')
+     || target.parentElement.classList.contains('slider__pagination')
+     || e.buttons === 2
+     || isSliding()) {
+      return;
     }
 
-    wasPressed = true;
-    timeOfStartDragging = new Date().getTime();
-    endSliding();
+    if (config.direction === 'horizontal') {
+      config.startPointOfDragging = e.pageX;
+    } else {
+      config.startPointOfDragging = e.pageY;
+    }
+
+    config.wasPressed = true;
+    config.timeOfStartDragging = new Date().getTime();
     e.preventDefault();
   }
 
   function dragging(e: MouseEvent) {
+    const { wasPressed, direction, startPointOfDragging: start } = config;
     // If user move mouse without wasPressed slider won't get triggered.
     if (!wasPressed) return;
-
+    addVisibility();
     if (direction === 'horizontal') {
       var currentPointOfDragging = e.pageX;
     } else {
       var currentPointOfDragging = e.pageY;
     }
-    const draggedDistance = startPointOfDragging - currentPointOfDragging;
+    const draggedDistance = start - currentPointOfDragging;
     const slowingCoeff = 2;
     if (draggedDistance < 0) {
       draggingUp(draggedDistance, slowingCoeff);
@@ -183,37 +249,40 @@ function Slider(sliderClassName: string, config: Config): void {
     }
   }
 
-  function draggingUp(draggedDistance:number, slowingCoeff:number) {
+  function draggingUp(draggedDistance: number, slowingCoeff: number) {
     if (isFirstSlide()) {
-      setSliderPosition(indexOfActiveSlide, draggedDistance, slowingCoeff);
+      setSliderPosition(config.activeSlide, draggedDistance, slowingCoeff);
     } else {
-      setSliderPosition(indexOfActiveSlide, draggedDistance);
+      setSliderPosition(config.activeSlide, draggedDistance);
     }
   }
+
   function draggingDown(draggedDistance: number, slowingCoeff: number) {
     if (isLastSlide()) {
-      setSliderPosition(indexOfActiveSlide, draggedDistance, slowingCoeff);
+      setSliderPosition(config.activeSlide, draggedDistance, slowingCoeff);
     } else {
-      setSliderPosition(indexOfActiveSlide, draggedDistance);
+      setSliderPosition(config.activeSlide, draggedDistance);
     }
   }
 
   function endOfDragging(e: MouseEvent) {
-    if (!wasPressed) return;
-    wasPressed = false;
+    const { direction, startPointOfDragging: start } = config;
+
+    if (!config.wasPressed) return;
+    config.wasPressed = false;
     if (direction === 'horizontal') {
       var endPointOfDragging = e.pageX;
     } else {
       var endPointOfDragging = e.pageY;
     }
-    const draggedDistance = startPointOfDragging - endPointOfDragging;
+    const draggedDistance = start - endPointOfDragging;
 
-    draggingStopped = new Date().getTime();
+    config.draggingStopped = new Date().getTime();
 
     // If user dragged in vertical direction
     // then slider doesn't get triggered.
     if (slidingWasCanceled(endPointOfDragging)) return;
-    // If not choose next slider according to direction.
+    // If not, choose next slider according to direction.
     chooseNextSlide(draggedDistance, timeOfDragging());
   }
 
@@ -222,7 +291,8 @@ function Slider(sliderClassName: string, config: Config): void {
   }
 
   function timeOfDragging() {
-    return draggingStopped - timeOfStartDragging;
+    const { draggingStopped: stop, timeOfStartDragging: start } = config;
+    return stop - start;
   }
 
   function chooseNextSlide(draggedDistance: number, dragTime: number) {
@@ -257,33 +327,39 @@ function Slider(sliderClassName: string, config: Config): void {
   }
 
   function isFirstSlide() {
-    return indexOfActiveSlide === 0;
+    return config.activeSlide === 0;
   }
 
   function isLastSlide() {
-    return indexOfActiveSlide === slides.length - 1;
+    return config.activeSlide === slides.length - 1;
   }
 
   function goToCurrentSlide() {
-    setSliderPosition(indexOfActiveSlide);
+    setSliderPosition(config.activeSlide);
+  }
+
+  function applyChangesAfterTransition() {
+    if (config.counter) setCurrentSlideNumber();
   }
 
   function goToPrevSlide() {
-    const newActiveSlide = indexOfActiveSlide - 1;
-    const prevActiveSlide = indexOfActiveSlide;
+    const { activeSlide } = config;
+    const newActiveSlide = activeSlide - 1;
+    const prevActiveSlide = activeSlide;
     setSliderPosition(newActiveSlide);
-    setNewActiveSlideAndBullet(newActiveSlide, prevActiveSlide);
+    setActiveStatus(newActiveSlide, prevActiveSlide);
 
-    // setCurrentSlideNumber();
+    applyChangesAfterTransition();
   }
 
   function goToNextSlide() {
-    const newActiveSlide = indexOfActiveSlide + 1;
-    const prevActiveSlide = indexOfActiveSlide;
+    const { activeSlide } = config;
+    const newActiveSlide = activeSlide + 1;
+    const prevActiveSlide = activeSlide;
     setSliderPosition(newActiveSlide);
-    setNewActiveSlideAndBullet(newActiveSlide, prevActiveSlide);
+    setActiveStatus(newActiveSlide, prevActiveSlide);
 
-    // setCurrentSlideNumber();
+    applyChangesAfterTransition();
   }
 
   function initEventListeners() {
@@ -313,9 +389,10 @@ function Slider(sliderClassName: string, config: Config): void {
 
     // Change size of slide according to the size of viewport.
     window.addEventListener('resize', () => {
+      const { direction, activeSlide } = config;
       if (direction === 'horizontal') setSizeOfSlide();
       else setSizeOfSlide('height');
-      setSliderPosition(indexOfActiveSlide);
+      setSliderPosition(activeSlide);
     });
   }
 }
