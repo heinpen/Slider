@@ -38,14 +38,15 @@
     background-color: transparent
     border: none
     cursor: pointer
-    &.isBlocked
+    &[disabled]
       cursor: not-allowed
-    &_right
+      opacity: .3
+    &_forward
       right: 10px
       bottom: 50%
       transform: translateY(50%)
       background-image:  url('../../images/arrow.svg')
-    &_left
+    &_back
       left: 10px
       bottom: 50%
       transform: translateY(50%) rotate(180deg)
