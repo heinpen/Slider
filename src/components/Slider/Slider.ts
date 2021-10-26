@@ -12,7 +12,7 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
   const sliderWrapper = slider.querySelector<HTMLElement>('.slider__wrapper');
   const slides = slider.querySelectorAll('.slider__slide');
 
-  const config = (function init() {
+  const config = (function createConfig() {
     interface MainConfig {
       wasPressed: boolean,
       slidePosition: number,
@@ -24,7 +24,11 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
       slideHeight?: number,
       slideWidth?: number,
       bullets?: NodeListOf<Element>
-      counter?: HTMLSpanElement
+      counter?: HTMLSpanElement,
+      arrows?: {
+        forward: HTMLButtonElement,
+        back: HTMLButtonElement
+      }
     }
 
     const mainConfig: MainConfig = {
@@ -50,7 +54,7 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
 
     // arrows
     if (userConfig.arrows) {
-      createArrows();
+      mainConfig.arrows = createArrows();
     }
 
     // pagination
@@ -67,22 +71,58 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
   })();
 
   (function init() {
-    if (config.counter) setCurrentSlideNumber();
-    setActiveStatus(config.activeSlide);
+    const { counter, activeSlide, arrows } = config;
+    if (counter) setCurrentSlideNumber();
+    setActiveStatus(activeSlide);
+    if (arrows) setArrowStatus();
     initEventListeners();
     addTransparentHighlight();
   })();
 
   function createArrows() {
-    const arrows = {
-      right: document.createElement('button'),
-      left: document.createElement('button'),
+    interface Arrows {
+      [arrow: string] : HTMLButtonElement,
+      forward: HTMLButtonElement,
+      back: HTMLButtonElement
+    }
+    const arrows: Arrows = {
+      forward: document.createElement('button'),
+      back: document.createElement('button'),
     };
-    arrows.right.classList.add('slider__arrow', 'slider__arrow_right');
-    arrows.left.classList.add('slider__arrow', 'slider__arrow_left');
+
+    arrows.forward.classList.add('slider__arrow', 'slider__arrow_forward');
+    arrows.back.classList.add('slider__arrow', 'slider__arrow_back');
+
+    for (const arrow in arrows) {
+      if (Object.hasOwnProperty.call(arrows, arrow)) {
+        arrows[arrow].addEventListener('click', arrowHandler);
+      }
+    }
 
     // Append to slider.
-    slider.append(arrows.right, arrows.left);
+    slider.append(arrows.forward, arrows.back);
+
+    return arrows;
+  }
+
+  function arrowHandler(e: MouseEvent) {
+    const target = e.target as HTMLTextAreaElement;
+    if (target.classList.contains('slider__arrow_back')) {
+      if (isFirstSlide()) return;
+      const newIndex = config.activeSlide - 1;
+      initArrows(newIndex);
+    } else if (target.classList.contains('slider__arrow_forward')) {
+      if (isLastSlide()) return;
+      const newIndex = config.activeSlide + 1;
+      initArrows(newIndex);
+    }
+
+    function initArrows(newIndex: number) {
+      console.log(newIndex);
+      changeSliderPosition(newIndex);
+      setActiveStatus(newIndex);
+      applyChangesAfterTransition();
+    }
   }
 
   function createBullets(direction: string) {
@@ -210,7 +250,7 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
 
   function startOfDragging(e: MouseEvent) {
     const target = e.target as HTMLTextAreaElement;
-    // If click was on pagination bar or right click was used
+    // If click was on pagination bar or right-click was used
     // then slider-dragging is not getting triggered.
     if (target.classList.contains('slider__pagination')
      || target.parentElement.classList.contains('slider__pagination')
@@ -301,17 +341,17 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
     } else if (timeLimitBreached(dragTime)) {
       goToCurrentSlide();
       startSliding();
-    } else if (directionOfDragging(draggedDistance) === 'left') {
+    } else if (directionOfDragging(draggedDistance) === 'back') {
       isFirstSlide() ? goToCurrentSlide() : goToPrevSlide();
       startSliding();
-    } else if (directionOfDragging(draggedDistance) === 'right') {
+    } else if (directionOfDragging(draggedDistance) === 'forward') {
       isLastSlide() ? goToCurrentSlide() : goToNextSlide();
       startSliding();
     }
   }
 
   function directionOfDragging(draggedDistance: number) {
-    return draggedDistance > 0 ? 'right' : 'left';
+    return draggedDistance > 0 ? 'forward' : 'back';
   }
 
   function timeLimitBreached(dragTime: number) {
@@ -338,8 +378,24 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
     setSliderPosition(config.activeSlide);
   }
 
+  function setArrowStatus() {
+    const { arrows } = config;
+    if (isLastSlide()) {
+      arrows.forward.disabled = true;
+      arrows.back.removeAttribute('disabled');
+    } else if (isFirstSlide()) {
+      arrows.back.disabled = true;
+      arrows.forward.removeAttribute('disabled');
+    } else {
+      arrows.forward.removeAttribute('disabled');
+      arrows.back.removeAttribute('disabled');
+    }
+  }
+
   function applyChangesAfterTransition() {
-    if (config.counter) setCurrentSlideNumber();
+    const { counter, arrows } = config;
+    if (counter) setCurrentSlideNumber();
+    if (arrows) setArrowStatus();
   }
 
   function goToPrevSlide() {
@@ -383,6 +439,7 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
       slider.addEventListener('touchcancel', endOfDragging);
       slider.addEventListener('touchend', endOfDragging);
     }
+
     // Set transitionDuration as 0ms when sliding transition ended
     // so we can drag without any transition.
     sliderWrapper.addEventListener('transitionend', endSliding);
