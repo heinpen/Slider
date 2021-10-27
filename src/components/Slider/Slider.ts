@@ -1,10 +1,11 @@
 import './Slider.sass';
 
 interface UserConfig {
-  direction?: string,
-  pagination?: boolean
-  counter?: boolean
-  arrows?: boolean
+  direction?: string;
+  pagination?: boolean;
+  counter?: boolean;
+  arrows?: boolean;
+  transition?: number;
 }
 
 function Slider(sliderClassName: string, userConfig: UserConfig): void {
@@ -14,21 +15,22 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
 
   const config = (function createConfig() {
     interface MainConfig {
-      wasPressed: boolean,
-      slidePosition: number,
-      activeSlide: number,
-      startPointOfDragging: number,
-      timeOfStartDragging: number,
-      draggingStopped: number,
-      direction?: string,
-      slideHeight?: number,
-      slideWidth?: number,
-      bullets?: NodeListOf<Element>
-      counter?: HTMLSpanElement,
+      wasPressed: boolean;
+      slidePosition: number;
+      activeSlide: number;
+      startPointOfDragging: number;
+      timeOfStartDragging: number;
+      draggingStopped: number;
+      transition: number;
+      direction: string;
+      slideHeight?: number;
+      slideWidth?: number;
+      bullets?: NodeListOf<Element>;
+      counter?: HTMLSpanElement;
       arrows?: {
-        forward: HTMLButtonElement,
-        back: HTMLButtonElement
-      }
+        forward: HTMLButtonElement;
+        back: HTMLButtonElement;
+      };
     }
 
     const mainConfig: MainConfig = {
@@ -38,12 +40,13 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
       startPointOfDragging: 0,
       timeOfStartDragging: 0,
       draggingStopped: 0,
+      transition: userConfig.transition ?? 200,
+      direction: userConfig.direction ?? 'horizontal',
     };
 
     // Configure slider according to config, provided by user.
 
     // direction
-    mainConfig.direction = userConfig.direction ?? 'horizontal';
     if (mainConfig.direction === 'vertical') {
       sliderWrapper.classList.add('slider__wrapper_vertical');
       slider.classList.add('slider_vertical');
@@ -81,9 +84,9 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
 
   function createArrows() {
     interface Arrows {
-      [arrow: string] : HTMLButtonElement,
-      forward: HTMLButtonElement,
-      back: HTMLButtonElement
+      [arrow: string]: HTMLButtonElement;
+      forward: HTMLButtonElement;
+      back: HTMLButtonElement;
     }
     const arrows: Arrows = {
       forward: document.createElement('button'),
@@ -118,7 +121,6 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
     }
 
     function initArrows(newIndex: number) {
-      console.log(newIndex);
       changeSliderPosition(newIndex);
       setActiveStatus(newIndex);
       applyChangesAfterTransition();
@@ -203,7 +205,7 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
 
   function startSliding() {
     addVisibility();
-    sliderWrapper.style.transitionDuration = '300ms';
+    sliderWrapper.style.transitionDuration = `${config.transition}ms`;
     addSlidingStatus();
   }
 
@@ -214,9 +216,7 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
   }
 
   function setSliderPosition(indexOfSlide: number, draggedDistance = 0, slowingCoeff = 1) {
-    const {
-      direction, slideWidth, slideHeight,
-    } = config;
+    const { direction, slideWidth, slideHeight } = config;
     if (direction === 'horizontal') {
       sliderWrapper.style.transform = `translate3d(${-calculateSliderPosition(slideWidth)}px, 0, 0)`;
     } else {
@@ -245,19 +245,24 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
   }
 
   function isSliding() {
-    return sliderWrapper.classList.contains('sliding');
+    return !!sliderWrapper.classList.contains('sliding');
   }
 
   function startOfDragging(e: MouseEvent) {
     const target = e.target as HTMLTextAreaElement;
-    // If click was on pagination bar or right-click was used
-    // then slider-dragging is not getting triggered.
-    if (target.classList.contains('slider__pagination')
-     || target.parentElement.classList.contains('slider__pagination')
-     || e.buttons === 2
-     || isSliding()) {
-      return;
-    }
+
+    // Create array of conditionals. And each of them has to return false
+    // to enable dragging.
+    const itemsPreventDragging = [
+      target.classList.contains('slider__pagination'),
+      target.parentElement.classList.contains('slider__pagination'),
+      e.buttons === 2,
+      isSliding(),
+      target.classList.contains('slider__arrow'),
+    ];
+    // Check each value in array to be false, if not - prevent dragging.
+    const isDraggingNotAllowed = itemsPreventDragging.some((con) => con);
+    if (isDraggingNotAllowed) return;
 
     if (config.direction === 'horizontal') {
       config.startPointOfDragging = e.pageX;
