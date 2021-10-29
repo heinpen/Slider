@@ -37,8 +37,9 @@
     "linebreak-style": 0,
     "import/extensions": "off",
     "vars-on-top": 0,
+    "no-return-assign": 0, 
     "lines-between-class-members": ["error", "always"],
-    "no-param-reassign": ["error", { "props": false }],
+    "no-param-reassign": 0,
     "max-len": ["error", { "ignoreComments": true, "code": 120 }],
     "react/jsx-filename-extension": [
       1,
