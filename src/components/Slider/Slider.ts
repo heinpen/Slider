@@ -11,7 +11,7 @@ interface UserConfig {
 function Slider(sliderClassName: string, userConfig: UserConfig): void {
   const slider = document.querySelector<HTMLElement>(sliderClassName);
   const sliderWrapper = slider.querySelector<HTMLElement>('.slider__wrapper');
-  const slides = slider.querySelectorAll('.slider__slide');
+  const slides = slider.querySelectorAll<HTMLElement>('.slider__slide');
 
   const config = (function createConfig() {
     interface MainConfig {
@@ -44,40 +44,35 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
       direction: userConfig.direction ?? 'horizontal',
     };
 
-    // Configure slider according to config, provided by user.
+    return mainConfig;
+  })();
 
+  (function configureSlider() {
     // direction
-    if (mainConfig.direction === 'vertical') {
+    if (config.direction === 'vertical') {
       sliderWrapper.classList.add('slider__wrapper_vertical');
       slider.classList.add('slider_vertical');
-      mainConfig.slideHeight = slider.offsetHeight;
-    } else {
-      mainConfig.slideWidth = slider.offsetWidth;
     }
 
     // arrows
     if (userConfig.arrows) {
-      mainConfig.arrows = createArrows();
+      config.arrows = createArrows();
+      setArrowStatus();
     }
 
     // pagination
     if (userConfig.pagination) {
-      mainConfig.bullets = createBullets(mainConfig.direction);
+      config.bullets = createBullets(config.direction);
     }
 
     // counter
     if (userConfig.counter) {
-      mainConfig.counter = createCounter();
+      config.counter = createCounter();
+      setCurrentSlideNumber();
     }
 
-    return mainConfig;
-  })();
-
-  (function init() {
-    const { counter, activeSlide, arrows } = config;
-    if (counter) setCurrentSlideNumber();
-    setActiveStatus(activeSlide);
-    if (arrows) setArrowStatus();
+    setActiveStatus(config.activeSlide);
+    setSizeOfSlide(config.direction);
     initEventListeners();
     addTransparentHighlight();
   })();
@@ -110,20 +105,20 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
 
   function arrowHandler(e: MouseEvent) {
     const target = e.target as HTMLTextAreaElement;
+    const { activeSlide } = config;
     if (target.classList.contains('slider__arrow_back')) {
       if (isFirstSlide()) return;
-      const newIndex = config.activeSlide - 1;
-      initArrows(newIndex);
+      const newIndex = activeSlide - 1;
+      triggerArrows(newIndex);
     } else if (target.classList.contains('slider__arrow_forward')) {
       if (isLastSlide()) return;
-      const newIndex = config.activeSlide + 1;
-      initArrows(newIndex);
+      const newIndex = activeSlide + 1;
+      triggerArrows(newIndex);
     }
 
-    function initArrows(newIndex: number) {
+    function triggerArrows(newIndex: number) {
       changeSliderPosition(newIndex);
-      setActiveStatus(newIndex);
-      applyChangesAfterTransition();
+      applyChangesAfterTransition(newIndex);
     }
   }
 
@@ -159,8 +154,7 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
       // If click was on active bullet - do nothing.
       if (newIndex === config.activeSlide) return;
       changeSliderPosition(newIndex);
-      setActiveStatus(newIndex);
-      applyChangesAfterTransition();
+      applyChangesAfterTransition(newIndex);
     }
   }
 
@@ -182,11 +176,14 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
     }
   }
 
-  function setSizeOfSlide(size?: string) {
-    if (size === 'height') {
+  function setSizeOfSlide(direction: string) {
+    if (direction === 'vertical') {
       config.slideHeight = slider.offsetHeight;
+      slides.forEach((slide) => slide.style.height = `${config.slideHeight}px`);
+    } else {
+      config.slideWidth = slider.offsetWidth;
+      slides.forEach((slide) => slide.style.width = `${config.slideWidth}px`);
     }
-    config.slideWidth = slider.offsetWidth;
   }
 
   function changeSliderPosition(newIndex: number) {
@@ -230,16 +227,18 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
   }
 
   function setActiveStatus(newIndex: number, prevIndex = config.activeSlide) {
+    const { bullets } = config;
     // slide
+
     slides[prevIndex].classList.remove('active-slide');
     slides[newIndex].classList.add('active-slide');
 
-    // bullet
-    if (config.bullets) {
-      config.bullets[prevIndex].classList.remove('active-bullet');
-      config.bullets[newIndex].classList.add('active-bullet');
+    // bullets
+    if (bullets) {
+      bullets[prevIndex].classList.remove('active-bullet');
+      bullets[newIndex].classList.add('active-bullet');
     }
-
+    console.log(newIndex, prevIndex);
     // Set new active index.
     config.activeSlide = newIndex;
   }
@@ -397,8 +396,9 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
     }
   }
 
-  function applyChangesAfterTransition() {
+  function applyChangesAfterTransition(newActiveSlide: number, prevActiveSlide?: number) {
     const { counter, arrows } = config;
+    setActiveStatus(newActiveSlide, prevActiveSlide);
     if (counter) setCurrentSlideNumber();
     if (arrows) setArrowStatus();
   }
@@ -408,9 +408,7 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
     const newActiveSlide = activeSlide - 1;
     const prevActiveSlide = activeSlide;
     setSliderPosition(newActiveSlide);
-    setActiveStatus(newActiveSlide, prevActiveSlide);
-
-    applyChangesAfterTransition();
+    applyChangesAfterTransition(newActiveSlide, prevActiveSlide);
   }
 
   function goToNextSlide() {
@@ -418,9 +416,7 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
     const newActiveSlide = activeSlide + 1;
     const prevActiveSlide = activeSlide;
     setSliderPosition(newActiveSlide);
-    setActiveStatus(newActiveSlide, prevActiveSlide);
-
-    applyChangesAfterTransition();
+    applyChangesAfterTransition(newActiveSlide, prevActiveSlide);
   }
 
   function initEventListeners() {
@@ -452,8 +448,7 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
     // Change size of slide according to the size of viewport.
     window.addEventListener('resize', () => {
       const { direction, activeSlide } = config;
-      if (direction === 'horizontal') setSizeOfSlide();
-      else setSizeOfSlide('height');
+      setSizeOfSlide(direction);
       setSliderPosition(activeSlide);
     });
   }
