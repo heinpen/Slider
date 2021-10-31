@@ -10,10 +10,11 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    // "strict": true,
+    "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "resolveJsonModule": true,
+    "strictNullChecks": false,
     "isolatedModules": true,
     "noEmit": true
   },
