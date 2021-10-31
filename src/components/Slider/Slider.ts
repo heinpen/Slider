@@ -420,26 +420,11 @@ function Slider(sliderClassName: string, userConfig: UserConfig): void {
   }
 
   function initEventListeners() {
-    if (window.PointerEvent) {
-      slider.addEventListener('pointerdown', startOfDragging);
-      slider.addEventListener('pointermove', dragging);
-      slider.addEventListener('pointerup', endOfDragging);
-      slider.addEventListener('pointercancel', endOfDragging);
-
-      //
-
-      slider.addEventListener('mouseleave', endOfDragging);
-    } else {
-      slider.addEventListener('mousedown', startOfDragging);
-      slider.addEventListener('mousemove', dragging);
-      slider.addEventListener('mouseup', endOfDragging);
-      slider.addEventListener('mouseleave', endOfDragging);
-
-      slider.addEventListener('touchstart', startOfDragging);
-      slider.addEventListener('touchmove', dragging);
-      slider.addEventListener('touchcancel', endOfDragging);
-      slider.addEventListener('touchend', endOfDragging);
-    }
+    slider.addEventListener('pointerdown', startOfDragging);
+    slider.addEventListener('pointermove', dragging);
+    slider.addEventListener('pointerup', endOfDragging);
+    slider.addEventListener('pointercancel', endOfDragging);
+    slider.addEventListener('pointerleave', endOfDragging);
 
     // Set transitionDuration as 0ms when sliding transition ended
     // so we can drag without any transition.
