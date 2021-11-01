@@ -3,16 +3,15 @@
   height: 100%
   overflow: hidden
   position: relative
-  touch-action: pan-y
-  &_vertical
-    touch-action: pan-x
 
   &__wrapper
     display: flex
     width: 100%
     height: 100%
+    touch-action: pan-y
     &_vertical
       flex-direction: column
+      touch-action: pan-x
 
   &__slide
     flex-shrink: 0
@@ -23,9 +22,9 @@
     padding-top: 400px
     box-sizing: border-box
     visibility: hidden
-    &.active-slide
+    &.is-active
       visibility: visible
-    &.visible
+    &.is-visible
       visibility: visible
 
   &__arrow
@@ -46,23 +45,31 @@
       bottom: 50%
       transform: translateY(50%)
       background-image:  url('../../images/arrow.svg')
+      &.is-vertical
+        right: 10px
+        bottom: 46%
+        transform: translateY(50%) rotate(90deg)
     &_back
       left: 10px
       bottom: 50%
       transform: translateY(50%) rotate(180deg)
       background-image:  url('../../images/arrow.svg')
-
+      &.is-vertical
+        left: auto
+        right: 10px
+        bottom: 54%
+        transform: translateY(50%) rotate(270deg)
 
   &__pagination
     position: absolute
     display: flex
     gap: 10px
     z-index: 10
-    &.horizontal
+    &.is-horizontal
       bottom: 10px
       left: 50%
       transform: translateX(-50%)
-    &.vertical
+    &.is-vertical
       flex-direction: column
       left: 10px
       bottom: 50%
@@ -77,7 +84,7 @@
     border: none
     cursor: pointer
     box-sizing: border-box
-    &.active-bullet
+    &.is-active
       background-color: black
 
   &__counter
