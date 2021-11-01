@@ -52,7 +52,6 @@ function Slider(sliderId: string, userConfig: UserConfig): void {
     // direction
     if (config.direction === 'vertical') {
       sliderWrapper.classList.add('slider__wrapper_vertical');
-      slider.classList.add('slider_vertical');
     }
 
     // arrows
@@ -75,7 +74,6 @@ function Slider(sliderId: string, userConfig: UserConfig): void {
     setActiveStatus(config.activeSlide);
     setSizeOfSlide(config.direction);
     initEventListeners();
-    addTransparentHighlight();
   })();
 
   function createArrows() {
@@ -95,6 +93,7 @@ function Slider(sliderId: string, userConfig: UserConfig): void {
     for (const arrow in arrows) {
       if (Object.hasOwnProperty.call(arrows, arrow)) {
         arrows[arrow].addEventListener('click', arrowHandler);
+        if (config.direction === 'vertical') arrows[arrow].classList.add('is-vertical');
       }
     }
 
@@ -125,15 +124,15 @@ function Slider(sliderId: string, userConfig: UserConfig): void {
 
   function createBullets(direction: string) {
     const sliderPagination = document.createElement('div');
-
     sliderPagination.classList.add('slider__pagination');
-    if (direction === 'vertical') sliderPagination.classList.add('vertical');
-    else sliderPagination.classList.add('horizontal');
+
+    if (direction === 'vertical') sliderPagination.classList.add('is-vertical');
+    else sliderPagination.classList.add('is-horizontal');
 
     for (let i = 0; i < slides.length; i++) {
       const bullet = document.createElement('button');
       bullet.classList.add('slider__bullet');
-      bullet.dataset.bulletIndex = String(i);
+      bullet.dataset.index = String(i);
       sliderPagination.appendChild(bullet);
     }
 
@@ -144,14 +143,10 @@ function Slider(sliderId: string, userConfig: UserConfig): void {
     return document.querySelectorAll('.slider__bullet');
   }
 
-  function addTransparentHighlight() {
-    slider.classList.add('highlight-transparent');
-  }
-
   function triggerBullets(e: MouseEvent) {
     const target = e.target as HTMLTextAreaElement;
     if (target.classList.contains('slider__bullet')) {
-      const newIndex = Number(target.dataset.bulletIndex);
+      const newIndex = Number(target.dataset.index);
       // If click was on active bullet - do nothing.
       if (newIndex === config.activeSlide) return;
       changeSliderPosition(newIndex);
@@ -194,11 +189,11 @@ function Slider(sliderId: string, userConfig: UserConfig): void {
   }
 
   function addVisibility() {
-    slides.forEach((slide) => slide.classList.add('visible'));
+    slides.forEach((slide) => slide.classList.add('is-visible'));
   }
 
   function removeVisibility() {
-    slides.forEach((slide) => slide.classList.remove('visible'));
+    slides.forEach((slide) => slide.classList.remove('is-visible'));
   }
 
   function startSliding() {
@@ -229,17 +224,17 @@ function Slider(sliderId: string, userConfig: UserConfig): void {
 
   function setActiveStatus(newIndex: number, prevIndex = config.activeSlide) {
     const { bullets } = config;
-    // slide
 
-    slides[prevIndex].classList.remove('active-slide');
-    slides[newIndex].classList.add('active-slide');
+    // slide
+    slides[prevIndex].classList.remove('is-active');
+    slides[newIndex].classList.add('is-active');
 
     // bullets
     if (bullets) {
-      bullets[prevIndex].classList.remove('active-bullet');
-      bullets[newIndex].classList.add('active-bullet');
+      bullets[prevIndex].classList.remove('is-active');
+      bullets[newIndex].classList.add('is-active');
     }
-    console.log(newIndex, prevIndex);
+
     // Set new active index.
     config.activeSlide = newIndex;
   }
