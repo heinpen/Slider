@@ -1,9 +1,9 @@
 import './index.sass';
 import Slider from './components/Slider/Slider';
 
-Slider('.slider', {
+Slider('slider1', {
   direction: 'horizontal',
-  pagination: true,
   counter: true,
   arrows: true,
+  pagination: true,
 });

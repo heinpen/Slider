@@ -8,8 +8,9 @@ interface UserConfig {
   transition?: number;
 }
 
-function Slider(sliderClassName: string, userConfig: UserConfig): void {
-  const slider = document.querySelector<HTMLElement>(sliderClassName);
+function Slider(sliderId: string, userConfig: UserConfig): void {
+  const slider = document.getElementById(sliderId);
+  slider.classList.add('slider');
   const sliderWrapper = slider.querySelector<HTMLElement>('.slider__wrapper');
   const slides = slider.querySelectorAll<HTMLElement>('.slider__slide');
 
