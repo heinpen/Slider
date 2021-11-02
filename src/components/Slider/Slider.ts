@@ -51,7 +51,7 @@ function Slider(sliderId: string, userConfig: UserConfig): void {
   (function configureSlider() {
     // direction
     if (config.direction === 'vertical') {
-      sliderWrapper.classList.add('slider__wrapper_vertical');
+      sliderWrapper.classList.add('is-vertical');
     }
 
     // arrows
